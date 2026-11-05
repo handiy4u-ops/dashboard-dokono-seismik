@@ -46,10 +46,10 @@
   </header>
 
   <!-- Key Metrics / Summary Row -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
     <div class="card p-4 rounded-xl flex items-center justify-between">
       <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Total Gempa (Tanggal Dipilih)</p>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Total Gempa</p>
         <h3 id="stat-total" class="text-2xl font-extrabold text-white mt-1">0</h3>
         <span class="text-xs text-emerald-400"><i class="fa-solid fa-arrow-up"></i> Berdasarkan Filter</span>
       </div>
@@ -69,16 +69,25 @@
       <div>
         <p class="text-xs text-slate-400 uppercase font-semibold">Vulkanik Dangkal (VB)</p>
         <h3 id="stat-vb" class="text-2xl font-extrabold text-sky-400 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
-        <span class="text-xs text-slate-400">Aktivitas magmatik permukaan</span>
+        <span class="text-xs text-slate-400">Aktivitas permukaan</span>
       </div>
       <div class="p-3 bg-sky-500/10 text-sky-400 rounded-lg"><i class="fa-solid fa-mountain text-xl"></i></div>
     </div>
 
     <div class="card p-4 rounded-xl flex items-center justify-between">
       <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Status Sensor Transmisi</p>
-        <h3 class="text-2xl font-extrabold text-emerald-400 mt-1">STASIUN DKB</h3>
-        <span class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Sinyal Normal (100%)</span>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Gempa LF</p>
+        <h3 id="stat-lf" class="text-2xl font-extrabold text-purple-300 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
+        <span class="text-xs text-slate-400">Tekanan fluida</span>
+      </div>
+      <div class="p-3 bg-purple-500/10 text-purple-300 rounded-lg"><i class="fa-solid fa-water text-xl"></i></div>
+    </div>
+
+    <div class="card p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Sensor Transmisi</p>
+        <h3 class="text-2xl font-extrabold text-emerald-400 mt-1">DKB</h3>
+        <span class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Normal (100%)</span>
       </div>
       <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg"><i class="fa-solid fa-tower-broadcast text-xl"></i></div>
     </div>
@@ -143,10 +152,10 @@
       doughnutChart = new Chart(doughnutCtx, {
         type: 'doughnut',
         data: { 
-          labels: ['Letusan', 'VB', 'VA', 'TL', 'TJ', 'Tremor Menerus'], 
+          labels: ['Letusan', 'VB', 'VA', 'TL', 'TJ', 'LF', 'Tremor Menerus'], 
           datasets: [{ 
-            data: [0, 0, 0, 0, 0, 0], 
-            backgroundColor: ['#f97316', '#38bdf8', '#6366f1', '#a855f7', '#ec4899', '#eab308'] 
+            data: [0, 0, 0, 0, 0, 0, 0], 
+            backgroundColor: ['#f97316', '#38bdf8', '#6366f1', '#a855f7', '#ec4899', '#c084fc', '#eab308'] 
           }] 
         },
         options: {
@@ -186,13 +195,10 @@
         return;
       }
 
-      // Memecah "YYYY-MM-DD" dari input HTML
       const [year, month, day] = selectedDate.split('-');
-
-      // Buat berbagai variasi format tanggal untuk pencocokan yang aman
-      const targetDDMMYYYY = `${day}-${month}-${year}`; // 30-08-2026
-      const targetShort = `${parseInt(day)}-${parseInt(month)}-${year}`; // 30-8-2026
-      const targetSlash = `${day}/${month}/${year}`; // 30/08/2026
+      const targetDDMMYYYY = `${day}-${month}-${year}`; 
+      const targetShort = `${parseInt(day)}-${parseInt(month)}-${year}`; 
+      const targetSlash = `${day}/${month}/${year}`; 
 
       const filtered = globalRowsData.filter(row => {
         const periode = String(row['PERIODE PENGAMATAN'] || '').trim();
@@ -217,8 +223,9 @@
         document.getElementById('stat-letusan').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
         document.getElementById('stat-amp-letusan').innerText = `Amp max: - mm`;
         document.getElementById('stat-vb').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
+        document.getElementById('stat-lf').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
         
-        doughnutChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+        doughnutChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0];
         doughnutChart.update();
         document.getElementById('detail-list').innerHTML = '';
         
@@ -236,16 +243,18 @@
       const va = Number(latest['Jumlah VA'] || 0);
       const tl = Number(latest['Jumlah TL'] || 0);
       const tj = Number(latest['Jumlah TJ'] || 0);
+      const lf = Number(latest['Jumlah LF'] || 0);
       const tremor = Number(latest['Tremor Amp (mm)'] || 0);
 
       document.getElementById('stat-letusan').innerHTML = `${letusan} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
       document.getElementById('stat-amp-letusan').innerText = `Amp max: ${ampLetusan} mm`;
       document.getElementById('stat-vb').innerHTML = `${vb} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
+      document.getElementById('stat-lf').innerHTML = `${lf} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
 
-      const totalGempa = letusan + vb + va + tl + tj;
+      const totalGempa = letusan + vb + va + tl + tj + lf;
       document.getElementById('stat-total').innerText = totalGempa.toLocaleString('id-ID');
 
-      doughnutChart.data.datasets[0].data = [letusan, vb, va, tl, tj, tremor];
+      doughnutChart.data.datasets[0].data = [letusan, vb, va, tl, tj, lf, tremor];
       doughnutChart.update();
 
       const detailContainer = document.getElementById('detail-list');
@@ -255,7 +264,8 @@
         <div class="flex justify-between"><span class="text-slate-400">VA:</span> <span class="font-bold text-indigo-400">${va}</span></div>
         <div class="flex justify-between"><span class="text-slate-400">TL:</span> <span class="font-bold text-purple-400">${tl}</span></div>
         <div class="flex justify-between"><span class="text-slate-400">TJ:</span> <span class="font-bold text-pink-400">${tj}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">Tremor (Amp):</span> <span class="font-bold text-yellow-400">${tremor} mm</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">LF:</span> <span class="font-bold text-purple-300">${lf}</span></div>
+        <div class="flex justify-between col-span-2 pt-1 border-t border-slate-700/40"><span class="text-slate-400">Tremor (Amp):</span> <span class="font-bold text-yellow-400">${tremor} mm</span></div>
       `;
 
       const labels = rowsToProcess.map((r, index) => {
@@ -269,16 +279,16 @@
         { label: 'VB', data: rowsToProcess.map(r => Number(r['Jumlah VB'] || 0)), backgroundColor: '#38bdf8' },
         { label: 'VA', data: rowsToProcess.map(r => Number(r['Jumlah VA'] || 0)), backgroundColor: '#6366f1' },
         { label: 'TL', data: rowsToProcess.map(r => Number(r['Jumlah TL'] || 0)), backgroundColor: '#a855f7' },
-        { label: 'TJ', data: rowsToProcess.map(r => Number(r['Jumlah TJ'] || 0)), backgroundColor: '#ec4899' }
+        { label: 'TJ', data: rowsToProcess.map(r => Number(r['Jumlah TJ'] || 0)), backgroundColor: '#ec4899' },
+        { label: 'LF', data: rowsToProcess.map(r => Number(r['Jumlah LF'] || 0)), backgroundColor: '#c084fc' }
       ];
       barChart.update();
     }
 
-    // Inisialisasi Otomatis Saat Halaman Selesai Dimuat
     window.onload = () => {
       initCharts();
       loadDataFromSheets();
-      setInterval(loadDataFromSheets, 60000); // Refresh otomatis tiap 1 menit
+      setInterval(loadDataFromSheets, 60000); 
     };
   </script>
 </body>
