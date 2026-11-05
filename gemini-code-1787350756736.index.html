@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Seismik - Gunung Dukono</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    /* Styling agar date picker menyatu dengan tema gelap */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen">
+
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-slate-700 gap-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-red-500 tracking-wide flex items-center gap-2">
+        <i class="fa-solid font-bold fa-volcano"></i> DASHBOARD SEISMIK GUNUNG DUKONO
+      </h1>
+      <p class="text-xs md:text-sm text-slate-400 mt-1">Stasiun Pemantauan Kegempaan | Halmahera Utara, Maluku Utara</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Input Filter Tanggal -->
+      <div class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
+        <label for="filter-date" class="text-xs text-slate-300 font-medium"><i class="fa-solid fa-calendar-days text-indigo-400 mr-1"></i>Pilih Tanggal:</label>
+        <input type="date" id="filter-date" class="bg-slate-900 text-xs text-slate-200 px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-indigo-500" onchange="filterDataByDate()">
+      </div>
+
+      <div class="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700 text-right">
+        <div class="text-xs text-slate-400">Status: <span class="text-amber-400 font-bold uppercase">Waspada (Lvl II)</span></div>
+        <div id="sync-status" class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-sync fa-spin mr-1"></i>Menghubungkan...</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Key Metrics / Summary Row -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="card p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Total Gempa (Tanggal Dipilih)</p>
+        <h3 id="stat-total" class="text-2xl font-extrabold text-white mt-1">0</h3>
+        <span class="text-xs text-emerald-400"><i class="fa-solid fa-arrow-up"></i> Berdasarkan Filter</span>
+      </div>
+      <div class="p-3 bg-red-500/10 text-red-400 rounded-lg"><i class="fa-solid fa-wave-square text-xl"></i></div>
+    </div>
+
+    <div class="card p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Gempa Letusan</p>
+        <h3 id="stat-letusan" class="text-2xl font-extrabold text-orange-400 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
+        <span id="stat-amp-letusan" class="text-xs text-slate-400">Amp max: - mm</span>
+      </div>
+      <div class="p-3 bg-orange-500/10 text-orange-400 rounded-lg"><i class="fa-solid fa-volcano text-xl"></i></div>
+    </div>
+
+    <div class="card p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Vulkanik Dangkal (VB)</p>
+        <h3 id="stat-vb" class="text-2xl font-extrabold text-sky-400 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
+        <span class="text-xs text-slate-400">Aktivitas magmatik permukaan</span>
+      </div>
+      <div class="p-3 bg-sky-500/10 text-sky-400 rounded-lg"><i class="fa-solid fa-mountain text-xl"></i></div>
+    </div>
+
+    <div class="card p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <p class="text-xs text-slate-400 uppercase font-semibold">Status Sensor Transmisi</p>
+        <h3 class="text-2xl font-extrabold text-emerald-400 mt-1">STASIUN DKB</h3>
+        <span class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Sinyal Normal (100%)</span>
+      </div>
+      <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg"><i class="fa-solid fa-tower-broadcast text-xl"></i></div>
+    </div>
+  </div>
+
+  <!-- Main Grid Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Grafik Batang -->
+    <div class="card p-5 rounded-xl lg:col-span-2">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider">
+          <i class="fa-chart-column mr-2 text-indigo-400"></i>Grafik Akumulasi Kegempaan Harian
+        </h2>
+        <span id="chart-info-label" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded">Semua Data</span>
+      </div>
+      <div class="h-64 md:h-80">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Proporsi Donat & Rincian -->
+    <div class="card p-5 rounded-xl flex flex-col justify-between">
+      <div>
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-2">
+          <i class="fa-chart-pie mr-2 text-emerald-400"></i>Proporsi Jenis Gempa
+        </h2>
+        <p class="text-xs text-slate-400 mb-4">Distribusi pada tanggal terpilih</p>
+        <div class="h-52 relative flex items-center justify-center">
+          <canvas id="doughnutChart"></canvas>
+        </div>
+      </div>
+      <div id="detail-list" class="mt-4 pt-4 border-t border-slate-700/60 grid grid-cols-2 gap-2 text-xs">
+        <!-- Terisi otomatis oleh JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyxXYQDQxzVnqNmpZWvagK_7_MldwVYCukvztMigR6LrPkKvU3fNOkxD2Mp3qluRquv/exec';
+
+    let globalRowsData = [];
+    let barChart, doughnutChart;
+
+    function initCharts() {
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 12 } } }
+        }
+      });
+
+      const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+      doughnutChart = new Chart(doughnutCtx, {
+        type: 'doughnut',
+        data: { 
+          labels: ['Letusan', 'VB', 'VA', 'TL', 'TJ', 'Tremor Menerus'], 
+          datasets: [{ 
+            data: [0, 0, 0, 0, 0, 0], 
+            backgroundColor: ['#f97316', '#38bdf8', '#6366f1', '#a855f7', '#ec4899', '#eab308'] 
+          }] 
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          cutout: '70%'
+        }
+      });
+    }
+
+    async function loadDataFromSheets() {
+      const syncElem = document.getElementById('sync-status');
+      try {
+        syncElem.innerHTML = `<i class="fa-solid fa-sync fa-spin mr-1"></i>Memperbarui data...`;
+        
+        const response = await fetch(GOOGLE_SCRIPT_URL);
+        globalRowsData = await response.json();
+        
+        if (globalRowsData && globalRowsData.length > 0) {
+          renderDashboard(globalRowsData);
+        }
+        
+        const now = new Date();
+        syncElem.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-1"></i>Updated: ${now.toLocaleTimeString('id-ID')}`;
+      } catch (err) {
+        console.error('Gagal mengambil data:', err);
+        syncElem.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-400 mr-1"></i>Gagal sync`;
+      }
+    }
+
+    function filterDataByDate() {
+      const selectedDate = document.getElementById('filter-date').value; // Format input HTML: YYYY-MM-DD
+      if (!selectedDate) {
+        renderDashboard(globalRowsData);
+        document.getElementById('chart-info-label').innerText = 'Semua Data';
+        return;
+      }
+
+      // Memecah "YYYY-MM-DD" dari input HTML
+      const [year, month, day] = selectedDate.split('-');
+
+      // Buat berbagai variasi format tanggal untuk pencocokan yang aman
+      const targetDDMMYYYY = `${day}-${month}-${year}`; // 30-08-2026
+      const targetShort = `${parseInt(day)}-${parseInt(month)}-${year}`; // 30-8-2026
+      const targetSlash = `${day}/${month}/${year}`; // 30/08/2026
+
+      const filtered = globalRowsData.filter(row => {
+        const periode = String(row['PERIODE PENGAMATAN'] || '').trim();
+        return periode.includes(targetDDMMYYYY) || 
+               periode.includes(targetShort) || 
+               periode.includes(targetSlash) ||
+               periode.includes(selectedDate);
+      });
+
+      if (filtered.length > 0) {
+        renderDashboard(filtered);
+        document.getElementById('chart-info-label').innerText = `Tanggal: ${targetDDMMYYYY}`;
+      } else {
+        renderDashboard([]);
+        document.getElementById('chart-info-label').innerText = `Tidak ada data (${targetDDMMYYYY})`;
+      }
+    }
+
+    function renderDashboard(rowsToProcess) {
+      if (!rowsToProcess || rowsToProcess.length === 0) {
+        document.getElementById('stat-total').innerText = '0';
+        document.getElementById('stat-letusan').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
+        document.getElementById('stat-amp-letusan').innerText = `Amp max: - mm`;
+        document.getElementById('stat-vb').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
+        
+        doughnutChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+        doughnutChart.update();
+        document.getElementById('detail-list').innerHTML = '';
+        
+        barChart.data.labels = [];
+        barChart.data.datasets = [];
+        barChart.update();
+        return;
+      }
+
+      const latest = rowsToProcess[rowsToProcess.length - 1];
+
+      const letusan = Number(latest['Jumlah Letusan'] || 0);
+      const ampLetusan = latest['Amp Letusan (mm)'] || '-';
+      const vb = Number(latest['Jumlah VB'] || 0);
+      const va = Number(latest['Jumlah VA'] || 0);
+      const tl = Number(latest['Jumlah TL'] || 0);
+      const tj = Number(latest['Jumlah TJ'] || 0);
+      const tremor = Number(latest['Tremor Amp (mm)'] || 0);
+
+      document.getElementById('stat-letusan').innerHTML = `${letusan} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
+      document.getElementById('stat-amp-letusan').innerText = `Amp max: ${ampLetusan} mm`;
+      document.getElementById('stat-vb').innerHTML = `${vb} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
+
+      const totalGempa = letusan + vb + va + tl + tj;
+      document.getElementById('stat-total').innerText = totalGempa.toLocaleString('id-ID');
+
+      doughnutChart.data.datasets[0].data = [letusan, vb, va, tl, tj, tremor];
+      doughnutChart.update();
+
+      const detailContainer = document.getElementById('detail-list');
+      detailContainer.innerHTML = `
+        <div class="flex justify-between"><span class="text-slate-400">Letusan:</span> <span class="font-bold text-orange-400">${letusan}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">VB:</span> <span class="font-bold text-sky-400">${vb}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">VA:</span> <span class="font-bold text-indigo-400">${va}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">TL:</span> <span class="font-bold text-purple-400">${tl}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">TJ:</span> <span class="font-bold text-pink-400">${tj}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Tremor (Amp):</span> <span class="font-bold text-yellow-400">${tremor} mm</span></div>
+      `;
+
+      const labels = rowsToProcess.map((r, index) => {
+        const p = String(r['PERIODE PENGAMATAN'] || '');
+        return p ? p.split(' ')[0] : `Periode ${index + 1}`;
+      });
+
+      barChart.data.labels = labels;
+      barChart.data.datasets = [
+        { label: 'Letusan', data: rowsToProcess.map(r => Number(r['Jumlah Letusan'] || 0)), backgroundColor: '#f97316' },
+        { label: 'VB', data: rowsToProcess.map(r => Number(r['Jumlah VB'] || 0)), backgroundColor: '#38bdf8' },
+        { label: 'VA', data: rowsToProcess.map(r => Number(r['Jumlah VA'] || 0)), backgroundColor: '#6366f1' },
+        { label: 'TL', data: rowsToProcess.map(r => Number(r['Jumlah TL'] || 0)), backgroundColor: '#a855f7' },
+        { label: 'TJ', data: rowsToProcess.map(r => Number(r['Jumlah TJ'] || 0)), backgroundColor: '#ec4899' }
+      ];
+      barChart.update();
+    }
+
+    // Inisialisasi Otomatis Saat Halaman Selesai Dimuat
+    window.onload = () => {
+      initCharts();
+      loadDataFromSheets();
+      setInterval(loadDataFromSheets, 60000); // Refresh otomatis tiap 1 menit
+    };
+  </script>
+</body>
+</html>
