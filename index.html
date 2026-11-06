@@ -88,107 +88,113 @@
     </div>
 
     <script>
-        // Ganti URL di bawah ini dengan URL Web App Google Apps Script kamu (/exec)
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxr6-NH-zLVFJwA3xI4WlxVwvelN0EPVquwBGJ9pde2EymVnjgS_WQOC7eAXRpuV_M-/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypxi6a_rODEwCdIK6gpTjrOckPJFk8QLzMaRMMHWMfBAe6ZBN00d4K_jLxAgPbmJY4/exec";
 
-        let semuaDataGlobal = [];
-        let myChart = null;
+    let semuaDataGlobal = [];
+    let myChart = null;
 
-        // Ambil data saat halaman pertama kali dibuka
-        fetch(WEB_APP_URL)
-            .then(response => response.json())
-            .then(data => {
-                semuaDataGlobal = data;
-                document.getElementById('loadingText').style.display = 'none';
-                tampilkanGrafik(semuaDataGlobal);
-            })
-            .catch(error => {
-                console.error("Gagal memuat data:", error);
-                document.getElementById('loadingText').innerText = "Gagal memuat data dari server.";
+    // Ambil data dengan penanganan pengalihan (redirect) Google Apps Script
+    async function muatData() {
+        try {
+            const response = await fetch(WEB_APP_URL, {
+                method: "GET",
+                redirect: "follow"
             });
-
-        // Fungsi untuk menyaring data berdasarkan dropdown bulan
-        function filterDataGrafik() {
-            let bulanPilihan = document.getElementById('filterBulan').value;
             
-            if (bulanPilihan === "all") {
-                tampilkanGrafik(semuaDataGlobal);
-                return;
+            if (!response.ok) {
+                throw new Error("HTTP error! status: " + response.status);
             }
 
-            // Menyaring data berdasarkan format tanggal "DD-MM-YYYY" di kolom PERIODE PENGAMATAN
-            let dataSaringan = semuaDataGlobal.filter(item => {
-                let periode = item["PERIODE PENGAMATAN"] || "";
-                // Mengambil substring posisi bulan (karakter ke-3 dan ke-4, misal "11" dari "03-11-2026")
-                let bulanData = periode.substring(3, 5); 
-                return bulanData === bulanPilihan;
-            });
+            const data = await response.json();
+            semuaDataGlobal = data;
+            document.getElementById('loadingText').style.display = 'none';
+            tampilkanGrafik(semuaDataGlobal);
+        } catch (error) {
+            console.error("Gagal memuat data:", error);
+            document.getElementById('loadingText').innerText = "Gagal memuat data dari server. Pastikan Web App dipublikasikan ke 'Anyone' (Siapa Saja).";
+        }
+    }
 
-            tampilkanGrafik(dataSaringan);
+    // Jalankan pemuatan data
+    muatData();
+
+    function filterDataGrafik() {
+        let bulanPilihan = document.getElementById('filterBulan').value;
+        
+        if (bulanPilihan === "all") {
+            tampilkanGrafik(semuaDataGlobal);
+            return;
         }
 
-        // Fungsi untuk merender atau memperbarui Chart.js
-        function tampilkanGrafik(dataAktif) {
-            let labels = dataAktif.map(item => item["PERIODE PENGAMATAN"]);
-            let dataLetusan = dataAktif.map(item => parseInt(item["Jumlah Letusan"]) || 0);
-            let dataGuguran = dataAktif.map(item => parseInt(item["Jumlah Guguran"]) || 0);
-            let dataLF = dataAktif.map(item => parseInt(item["Jumlah LF"]) || 0);
+        let dataSaringan = semuaDataGlobal.filter(item => {
+            let periode = item["PERIODE PENGAMATAN"] || "";
+            let bulanData = periode.substring(3, 5); 
+            return bulanData === bulanPilihan;
+        });
 
-            let ctx = document.getElementById('grafikGempa').getContext('2d');
+        tampilkanGrafik(dataSaringan);
+    }
 
-            // Hancurkan grafik lama jika sudah ada agar tidak menumpuk
-            if (myChart) {
-                myChart.destroy();
-            }
+    function tampilkanGrafik(dataAktif) {
+        let labels = dataAktif.map(item => item["PERIODE PENGAMATAN"]);
+        let dataLetusan = dataAktif.map(item => parseInt(item["Jumlah Letusan"]) || 0);
+        let dataGuguran = dataAktif.map(item => parseInt(item["Jumlah Guguran"]) || 0);
+        let dataLF = dataAktif.map(item => parseInt(item["Jumlah LF"]) || 0);
 
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Jumlah Letusan',
-                            data: dataLetusan,
-                            borderColor: '#e74c3c',
-                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.2,
-                            fill: false
-                        },
-                        {
-                            label: 'Jumlah Guguran',
-                            data: dataGuguran,
-                            borderColor: '#f39c12',
-                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.2,
-                            fill: false
-                        },
-                        {
-                            label: 'Jumlah LF',
-                            data: dataLF,
-                            borderColor: '#3498db',
-                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.2,
-                            fill: false
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
+        let ctx = document.getElementById('grafikGempa').getContext('2d');
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Jumlah Letusan',
+                        data: dataLetusan,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.2,
+                        fill: false
+                    },
+                    {
+                        label: 'Jumlah Guguran',
+                        data: dataGuguran,
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.2,
+                        fill: false
+                    },
+                    {
+                        label: 'Jumlah LF',
+                        data: dataLF,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.2,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
                         }
                     }
                 }
-            });
-        }
-    </script>
+            }
+        });
+    }
+</script>
 </body>
 </html>
