@@ -307,22 +307,17 @@
         let chartBar = null;
         let chartDoughnut = null;
 
-        // Pemuatan data via JSONP (Bebas Blokir Browser / CORS)
+        // Mengambil data menggunakan JSONP agar aman dari blokir browser lokal
         function loadData() {
             const callbackName = 'handleSheetData';
             
-            // Callback global yang akan dieksekusi setelah Apps Script merespons
             window[callbackName] = function(data) {
                 semuaDataGlobal = data;
-                
-                // Sembunyikan loading dan tampilkan konten dashboard
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('dashboardContent').style.display = 'block';
-
                 prosesFilterData();
             };
 
-            // Membuat elemen script dinamis untuk memicu JSONP
             const script = document.createElement('script');
             script.src = `${WEB_APP_URL}?callback=${callbackName}`;
             script.onerror = function() {
@@ -446,20 +441,4 @@
                     labels: ['Letusan', 'VB', 'VA', 'TL', 'TJ', 'LF'],
                     datasets: [{
                         data: totals,
-                        backgroundColor: ['#f39c12', '#3498db', '#2f3542', '#9b59b6', '#e74c3c', '#a4b0be'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+                        backgroundColor: ['#f39c1
