@@ -3,198 +3,459 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Pemantauan Gunungapi Dukono</title>
-    <!-- Memuat Chart.js dari CDN -->
+    <title>Dashboard Seismik Gunung Dukono</title>
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151c2c;
+            --card-border: #232d42;
+            --text-main: #ffffff;
+            --text-sub: #8a99ad;
+            --accent-orange: #f39c12;
+            --accent-blue: #3498db;
+            --accent-purple: #9b59b6;
+            --accent-red: #e74c3c;
+            --accent-green: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
-            color: #333;
+            padding: 0;
         }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 24px;
         }
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .filter-section {
+
+        /* HEADER */
+        .header {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            gap: 10px;
+            margin-bottom: 24px;
         }
-        select {
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            background-color: #fff;
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #e74c3c;
+            letter-spacing: 0.5px;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .filter-box {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .filter-box select {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
             cursor: pointer;
         }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 450px;
+
+        .filter-box select option {
+            background: var(--card-bg);
+            color: var(--text-main);
         }
-        .loading {
+
+        .status-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 6px 14px;
+            border-radius: 6px;
+            text-align: right;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            color: var(--accent-orange);
+            font-weight: bold;
+        }
+
+        /* STAT CARDS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 16px;
+            position: relative;
+        }
+
+        .stat-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        /* MAIN DASHBOARD GRID */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .chart-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .box-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 380px;
+            width: 100%;
+        }
+
+        /* SUMMARY LEGEND LIST */
+        .proporsi-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            margin-top: 16px;
+            font-size: 12px;
+        }
+
+        .proporsi-item {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-sub);
+        }
+
+        .proporsi-item span {
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        #loadingOverlay {
             text-align: center;
-            font-style: italic;
-            color: #666;
-            margin-top: 50px;
+            padding: 40px;
+            color: var(--text-sub);
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Dashboard Aktivitas Kegempaan G. Dukono</h2>
-        
-        <!-- Bagian Filter Bulanan -->
-        <div class="filter-section">
-            <label for="filterBulan"><strong>Filter Bulan:</strong></label>
-            <select id="filterBulan" onchange="filterDataGrafik()">
-                <option value="all">Semua Bulan</option>
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-            </select>
+    <!-- HEADER & CONTROLS -->
+    <div class="header">
+        <div class="header-title">
+            <h1>🌋 DASHBOARD SEISMIK GUNUNG DUKONO</h1>
+            <p>Stasiun Pemantauan Kegempaan | Halmahera Utara, Maluku Utara</p>
+        </div>
+        <div class="header-controls">
+            <!-- Filter Bulan -->
+            <div class="filter-box">
+                <span>📅 Pilih Bulan:</span>
+                <select id="filterBulan" onchange="prosesFilterData()">
+                    <option value="all">Semua Bulan</option>
+                    <option value="01">Januari</option>
+                    <option value="02">Februari</option>
+                    <option value="03">Maret</option>
+                    <option value="04">April</option>
+                    <option value="05">Mei</option>
+                    <option value="06">Juni</option>
+                    <option value="07">Juli</option>
+                    <option value="08">Agustus</option>
+                    <option value="09">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Desember</option>
+                </select>
+            </div>
+            <div class="status-card">
+                Status: <span class="status-badge">WASPADA (LVL II)</span>
+                <div style="color: #8a99ad; font-size: 10px;">✓ Updated Live</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay">Memuat data dari Google Sheets...</div>
+
+    <div id="dashboardContent" style="display: none;">
+        <!-- STAT CARDS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total Gempa</div>
+                <div class="stat-value" id="cardTotal">0</div>
+                <div class="stat-sub">↑ Berdasarkan Filter</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Gempa Letusan</div>
+                <div class="stat-value" id="cardLetusan">0</div>
+                <div class="stat-sub" id="subLetusan">kejadian</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Vulkanik Dangkal (VB)</div>
+                <div class="stat-value" id="cardVB">0</div>
+                <div class="stat-sub">Aktivitas permukaan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Gempa LF</div>
+                <div class="stat-value" id="cardLF">0</div>
+                <div class="stat-sub">Tekanan fluida</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Sensor Transmisi</div>
+                <div class="stat-value" style="color: var(--accent-green);">DKB</div>
+                <div class="stat-sub" style="color: var(--accent-green);">● Normal (100%)</div>
+            </div>
         </div>
 
-        <!-- Area Grafik -->
-        <div id="loadingText" class="loading">Memuat data dari Google Sheets...</div>
-        <div class="chart-container">
-            <canvas id="grafikGempa"></canvas>
+        <!-- CHARTS SECTION -->
+        <div class="main-grid">
+            <!-- GRAFIK BAR / LINE HARIAN -->
+            <div class="chart-box">
+                <div class="box-header">
+                    <div class="box-title">📊 GRAFIK AKUMULASI KEGEMPAAN HARIAN</div>
+                    <div style="font-size: 12px; color: var(--text-sub);" id="filterStatusText">Semua Data</div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="barChartHarian"></canvas>
+                </div>
+            </div>
+
+            <!-- GRAFIK LINGKARAN (PROPORSI) -->
+            <div class="chart-box">
+                <div class="box-header">
+                    <div class="box-title">🍩 PROPORSI JENIS GEMPA</div>
+                </div>
+                <div class="chart-wrapper" style="height: 240px;">
+                    <canvas id="doughnutChart"></canvas>
+                </div>
+                <div class="proporsi-list">
+                    <div class="proporsi-item">Letusan: <span id="propLetusan">0</span></div>
+                    <div class="proporsi-item">VB: <span id="propVB">0</span></div>
+                    <div class="proporsi-item">VA: <span id="propVA">0</span></div>
+                    <div class="proporsi-item">TL: <span id="propTL">0</span></div>
+                    <div class="proporsi-item">TJ: <span id="propTJ">0</span></div>
+                    <div class="proporsi-item">LF: <span id="propLF">0</span></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypxi6a_rODEwCdIK6gpTjrOckPJFk8QLzMaRMMHWMfBAe6ZBN00d4K_jLxAgPbmJY4/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypxi6a_rODEwCdIK6gpTjrOckPJFk8QLzMaRMMHWMfBAe6ZBN00d4K_jLxAgPbmJY4/exec";
 
-    let semuaDataGlobal = [];
-    let myChart = null;
+        let semuaDataGlobal = [];
+        let chartBar = null;
+        let chartDoughnut = null;
 
-    // Ambil data dengan penanganan pengalihan (redirect) Google Apps Script
-    async function muatData() {
-        try {
-            const response = await fetch(WEB_APP_URL, {
-                method: "GET",
-                redirect: "follow"
-            });
-            
-            if (!response.ok) {
-                throw new Error("HTTP error! status: " + response.status);
+        // Fetch Data dari Apps Script
+        async function loadData() {
+            try {
+                const response = await fetch(WEB_APP_URL, { method: "GET", redirect: "follow" });
+                const data = await response.json();
+                semuaDataGlobal = data;
+
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+
+                prosesFilterData();
+            } catch (err) {
+                console.error("Gagal load data:", err);
+                document.getElementById('loadingOverlay').innerText = "Gagal memuat data dari server.";
+            }
+        }
+
+        loadData();
+
+        function prosesFilterData() {
+            let bulan = document.getElementById('filterBulan').value;
+            let dataFiltered = [];
+
+            if (bulan === "all") {
+                dataFiltered = semuaDataGlobal;
+                document.getElementById('filterStatusText').innerText = "Semua Data";
+            } else {
+                dataFiltered = semuaDataGlobal.filter(item => {
+                    let p = item["PERIODE PENGAMATAN"] || "";
+                    let b = p.substring(3, 5); // Mengambil format MM dari DD-MM-YYYY
+                    return b === bulan;
+                });
+                
+                let namaBulan = document.getElementById('filterBulan').options[document.getElementById('filterBulan').selectedIndex].text;
+                document.getElementById('filterStatusText').innerText = "Bulan: " + namaBulan;
             }
 
-            const data = await response.json();
-            semuaDataGlobal = data;
-            document.getElementById('loadingText').style.display = 'none';
-            tampilkanGrafik(semuaDataGlobal);
-        } catch (error) {
-            console.error("Gagal memuat data:", error);
-            document.getElementById('loadingText').innerText = "Gagal memuat data dari server. Pastikan Web App dipublikasikan ke 'Anyone' (Siapa Saja).";
-        }
-    }
-
-    // Jalankan pemuatan data
-    muatData();
-
-    function filterDataGrafik() {
-        let bulanPilihan = document.getElementById('filterBulan').value;
-        
-        if (bulanPilihan === "all") {
-            tampilkanGrafik(semuaDataGlobal);
-            return;
+            updateDashboard(dataFiltered);
         }
 
-        let dataSaringan = semuaDataGlobal.filter(item => {
-            let periode = item["PERIODE PENGAMATAN"] || "";
-            let bulanData = periode.substring(3, 5); 
-            return bulanData === bulanPilihan;
-        });
+        function updateDashboard(data) {
+            // Totalkan Data untuk Cards & Proporsi
+            let totLetusan = 0, totGuguran = 0, totHembusan = 0, totHarmonik = 0, totNonHarmonik = 0;
+            let totLF = 0, totVB = 0, totVA = 0, totTL = 0, totTJ = 0;
 
-        tampilkanGrafik(dataSaringan);
-    }
+            let labels = [];
+            let dataLetusanArr = [], dataVBArr = [], dataVAArr = [], dataTLArr = [], dataTJArr = [], dataLFArr = [];
 
-    function tampilkanGrafik(dataAktif) {
-        let labels = dataAktif.map(item => item["PERIODE PENGAMATAN"]);
-        let dataLetusan = dataAktif.map(item => parseInt(item["Jumlah Letusan"]) || 0);
-        let dataGuguran = dataAktif.map(item => parseInt(item["Jumlah Guguran"]) || 0);
-        let dataLF = dataAktif.map(item => parseInt(item["Jumlah LF"]) || 0);
+            data.forEach(item => {
+                let l = parseInt(item["Jumlah Letusan"]) || 0;
+                let vb = parseInt(item["Jumlah VB"]) || 0;
+                let va = parseInt(item["Jumlah VA"]) || 0;
+                let tl = parseInt(item["Jumlah TL"]) || 0;
+                let tj = parseInt(item["Jumlah TJ"]) || 0;
+                let lf = parseInt(item["Jumlah LF"]) || 0;
 
-        let ctx = document.getElementById('grafikGempa').getContext('2d');
+                totLetusan += l;
+                totVB += vb;
+                totVA += va;
+                totTL += tl;
+                totTJ += tj;
+                totLF += lf;
 
-        if (myChart) {
-            myChart.destroy();
+                labels.push(item["PERIODE PENGAMATAN"]);
+                dataLetusanArr.push(l);
+                dataVBArr.push(vb);
+                dataVAArr.push(va);
+                dataTLArr.push(tl);
+                dataTJArr.push(tj);
+                dataLFArr.push(lf);
+            });
+
+            let grandTotal = totLetusan + totVB + totVA + totTL + totTJ + totLF;
+
+            // Update Text Stat Cards
+            document.getElementById('cardTotal').innerText = grandTotal;
+            document.getElementById('cardLetusan').innerText = totLetusan;
+            document.getElementById('cardVB').innerText = totVB;
+            document.getElementById('cardLF').innerText = totLF;
+
+            // Update Proporsi Summary
+            document.getElementById('propLetusan').innerText = totLetusan;
+            document.getElementById('propVB').innerText = totVB;
+            document.getElementById('propVA').innerText = totVA;
+            document.getElementById('propTL').innerText = totTL;
+            document.getElementById('propTJ').innerText = totTJ;
+            document.getElementById('propLF').innerText = totLF;
+
+            // Render / Update Chart Bar Harian
+            renderBarChart(labels, dataLetusanArr, dataVBArr, dataVAArr, dataTLArr, dataTJArr, dataLFArr);
+
+            // Render / Update Chart Doughnut
+            renderDoughnutChart([totLetusan, totVB, totVA, totTL, totTJ, totLF]);
         }
 
-        myChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Jumlah Letusan',
-                        data: dataLetusan,
-                        borderColor: '#e74c3c',
-                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.2,
-                        fill: false
+        function renderBarChart(labels, letusan, vb, va, tl, tj, lf) {
+            let ctx = document.getElementById('barChartHarian').getContext('2d');
+            if (chartBar) chartBar.destroy();
+
+            chartBar = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Letusan', data: letusan, backgroundColor: '#f39c12' },
+                        { label: 'VB', data: vb, backgroundColor: '#3498db' },
+                        { label: 'VA', data: va, backgroundColor: '#2f3542' },
+                        { label: 'TL', data: tl, backgroundColor: '#9b59b6' },
+                        { label: 'TJ', data: tj, backgroundColor: '#e74c3c' },
+                        { label: 'LF', data: lf, backgroundColor: '#a4b0be' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#8a99ad', font: { size: 11 } } }
                     },
-                    {
-                        label: 'Jumlah Guguran',
-                        data: dataGuguran,
-                        borderColor: '#f39c12',
-                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.2,
-                        fill: false
-                    },
-                    {
-                        label: 'Jumlah LF',
-                        data: dataLF,
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.2,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
+                    scales: {
+                        x: { ticks: { color: '#8a99ad', font: { size: 9 } }, grid: { color: '#1e2736' } },
+                        y: { ticks: { color: '#8a99ad' }, grid: { color: '#1e2736' } }
                     }
                 }
-            }
-        });
-    }
-</script>
+            });
+        }
+
+        function renderDoughnutChart(totals) {
+            let ctx = document.getElementById('doughnutChart').getContext('2d');
+            if (chartDoughnut) chartDoughnut.destroy();
+
+            chartDoughnut = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Letusan', 'VB', 'VA', 'TL', 'TJ', 'LF'],
+                    datasets: [{
+                        data: totals,
+                        backgroundColor: ['#f39c12', '#3498db', '#2f3542', '#9b59b6', '#e74c3c', '#a4b0be'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    </script>
 </body>
 </html>
