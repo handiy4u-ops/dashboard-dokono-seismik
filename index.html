@@ -307,26 +307,29 @@
         let chartBar = null;
         let chartDoughnut = null;
 
-        // Mengambil data dari Web App Google Apps Script
-        async function loadData() {
-            try {
-                const response = await fetch(WEB_APP_URL);
-                if (!response.ok) {
-                    throw new Error("Respon server gagal: " + response.status);
-                }
-                
-                const data = await response.json();
+        // Pemuatan data via JSONP (Bebas Blokir Browser / CORS)
+        function loadData() {
+            const callbackName = 'handleSheetData';
+            
+            // Callback global yang akan dieksekusi setelah Apps Script merespons
+            window[callbackName] = function(data) {
                 semuaDataGlobal = data;
-
+                
+                // Sembunyikan loading dan tampilkan konten dashboard
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('dashboardContent').style.display = 'block';
 
                 prosesFilterData();
-            } catch (err) {
-                console.error("Gagal load data:", err);
+            };
+
+            // Membuat elemen script dinamis untuk memicu JSONP
+            const script = document.createElement('script');
+            script.src = `${WEB_APP_URL}?callback=${callbackName}`;
+            script.onerror = function() {
                 document.getElementById('loadingOverlay').innerHTML = 
-                    "<span style='color: #e74c3c;'>❌ Gagal memuat data dari server. Pastikan menjalankan file melalui local server (Live Server VS Code).</span>";
-            }
+                    "<span style='color: #e74c3c;'>❌ Gagal memuat data dari server. Pastikan deployment Web App diset ke 'Anyone'.</span>";
+            };
+            document.body.appendChild(script);
         }
 
         loadData();
