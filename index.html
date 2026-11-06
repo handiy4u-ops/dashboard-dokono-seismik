@@ -194,8 +194,9 @@
 
         #loadingOverlay {
             text-align: center;
-            padding: 40px;
+            padding: 80px;
             color: var(--text-sub);
+            font-size: 15px;
         }
     </style>
 </head>
@@ -306,21 +307,23 @@
         let chartBar = null;
         let chartDoughnut = null;
 
-        // Fetch Data dari Apps Script
-        async function loadData() {
-            try {
-                const response = await fetch(WEB_APP_URL, { method: "GET", redirect: "follow" });
-                const data = await response.json();
+        // Mengambil data menggunakan JSONP agar aman dari blokir CORS browser lokal
+        function loadData() {
+            const callbackName = 'handleSheetData';
+            
+            window[callbackName] = function(data) {
                 semuaDataGlobal = data;
-
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('dashboardContent').style.display = 'block';
-
                 prosesFilterData();
-            } catch (err) {
-                console.error("Gagal load data:", err);
-                document.getElementById('loadingOverlay').innerText = "Gagal memuat data dari server.";
-            }
+            };
+
+            const script = document.createElement('script');
+            script.src = `${WEB_APP_URL}?callback=${callbackName}`;
+            script.onerror = function() {
+                document.getElementById('loadingOverlay').innerText = "Gagal memuat data dari server. Periksa kembali koneksi internet atau URL Web App.";
+            };
+            document.body.appendChild(script);
         }
 
         loadData();
@@ -335,11 +338,11 @@
             } else {
                 dataFiltered = semuaDataGlobal.filter(item => {
                     let p = item["PERIODE PENGAMATAN"] || "";
-                    let b = p.substring(3, 5); // Mengambil format MM dari DD-MM-YYYY
+                    let b = p.substring(3, 5); // Ambil karakter bulan (MM) dari format DD-MM-YYYY
                     return b === bulan;
                 });
                 
-                let namaBulan = document.getElementById('filterBulan').options[document.getElementById('filterBulan').selectedIndex].text;
+                let namaBulan = document.getElementById('filterBulan').options[document.getElementById('filterBulan'].selectedIndex].text;
                 document.getElementById('filterStatusText').innerText = "Bulan: " + namaBulan;
             }
 
@@ -347,10 +350,7 @@
         }
 
         function updateDashboard(data) {
-            // Totalkan Data untuk Cards & Proporsi
-            let totLetusan = 0, totGuguran = 0, totHembusan = 0, totHarmonik = 0, totNonHarmonik = 0;
-            let totLF = 0, totVB = 0, totVA = 0, totTL = 0, totTJ = 0;
-
+            let totLetusan = 0, totVB = 0, totVA = 0, totTL = 0, totTJ = 0, totLF = 0;
             let labels = [];
             let dataLetusanArr = [], dataVBArr = [], dataVAArr = [], dataTLArr = [], dataTJArr = [], dataLFArr = [];
 
@@ -394,10 +394,8 @@
             document.getElementById('propTJ').innerText = totTJ;
             document.getElementById('propLF').innerText = totLF;
 
-            // Render / Update Chart Bar Harian
+            // Render Charts
             renderBarChart(labels, dataLetusanArr, dataVBArr, dataVAArr, dataTLArr, dataTJArr, dataLFArr);
-
-            // Render / Update Chart Doughnut
             renderDoughnutChart([totLetusan, totVB, totVA, totTL, totTJ, totLF]);
         }
 
