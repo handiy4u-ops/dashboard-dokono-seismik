@@ -1,295 +1,194 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Seismik - Gunung Dukono</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    /* Styling agar date picker menyatu dengan tema gelap */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(1);
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Pemantauan Gunungapi Dukono</title>
+    <!-- Memuat Chart.js dari CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .filter-section {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            margin-top: 50px;
+        }
+    </style>
 </head>
-<body class="p-4 md:p-6 min-h-screen">
+<body>
 
-  <!-- Header -->
-  <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-slate-700 gap-4">
-    <div>
-      <h1 class="text-2xl md:text-3xl font-bold text-red-500 tracking-wide flex items-center gap-2">
-        <i class="fa-solid font-bold fa-volcano"></i> DASHBOARD SEISMIK GUNUNG DUKONO
-      </h1>
-      <p class="text-xs md:text-sm text-slate-400 mt-1">Stasiun Pemantauan Kegempaan | Halmahera Utara, Maluku Utara</p>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3">
-      <!-- Input Filter Tanggal -->
-      <div class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
-        <label for="filter-date" class="text-xs text-slate-300 font-medium"><i class="fa-solid fa-calendar-days text-indigo-400 mr-1"></i>Pilih Tanggal:</label>
-        <input type="date" id="filter-date" class="bg-slate-900 text-xs text-slate-200 px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-indigo-500" onchange="filterDataByDate()">
-      </div>
-
-      <div class="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700 text-right">
-        <div class="text-xs text-slate-400">Status: <span class="text-amber-400 font-bold uppercase">Waspada (Lvl II)</span></div>
-        <div id="sync-status" class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-sync fa-spin mr-1"></i>Menghubungkan...</div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Key Metrics / Summary Row -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-    <div class="card p-4 rounded-xl flex items-center justify-between">
-      <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Total Gempa</p>
-        <h3 id="stat-total" class="text-2xl font-extrabold text-white mt-1">0</h3>
-        <span class="text-xs text-emerald-400"><i class="fa-solid fa-arrow-up"></i> Berdasarkan Filter</span>
-      </div>
-      <div class="p-3 bg-red-500/10 text-red-400 rounded-lg"><i class="fa-solid fa-wave-square text-xl"></i></div>
-    </div>
-
-    <div class="card p-4 rounded-xl flex items-center justify-between">
-      <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Gempa Letusan</p>
-        <h3 id="stat-letusan" class="text-2xl font-extrabold text-orange-400 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
-        <span id="stat-amp-letusan" class="text-xs text-slate-400">Amp max: - mm</span>
-      </div>
-      <div class="p-3 bg-orange-500/10 text-orange-400 rounded-lg"><i class="fa-solid fa-volcano text-xl"></i></div>
-    </div>
-
-    <div class="card p-4 rounded-xl flex items-center justify-between">
-      <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Vulkanik Dangkal (VB)</p>
-        <h3 id="stat-vb" class="text-2xl font-extrabold text-sky-400 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
-        <span class="text-xs text-slate-400">Aktivitas permukaan</span>
-      </div>
-      <div class="p-3 bg-sky-500/10 text-sky-400 rounded-lg"><i class="fa-solid fa-mountain text-xl"></i></div>
-    </div>
-
-    <div class="card p-4 rounded-xl flex items-center justify-between">
-      <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Gempa LF</p>
-        <h3 id="stat-lf" class="text-2xl font-extrabold text-purple-300 mt-1">0 <span class="text-xs font-normal text-slate-400">kejadian</span></h3>
-        <span class="text-xs text-slate-400">Tekanan fluida</span>
-      </div>
-      <div class="p-3 bg-purple-500/10 text-purple-300 rounded-lg"><i class="fa-solid fa-water text-xl"></i></div>
-    </div>
-
-    <div class="card p-4 rounded-xl flex items-center justify-between">
-      <div>
-        <p class="text-xs text-slate-400 uppercase font-semibold">Sensor Transmisi</p>
-        <h3 class="text-2xl font-extrabold text-emerald-400 mt-1">DKB</h3>
-        <span class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Normal (100%)</span>
-      </div>
-      <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg"><i class="fa-solid fa-tower-broadcast text-xl"></i></div>
-    </div>
-  </div>
-
-  <!-- Main Grid Layout -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-    <!-- Grafik Batang -->
-    <div class="card p-5 rounded-xl lg:col-span-2">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider">
-          <i class="fa-chart-column mr-2 text-indigo-400"></i>Grafik Akumulasi Kegempaan Harian
-        </h2>
-        <span id="chart-info-label" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded">Semua Data</span>
-      </div>
-      <div class="h-64 md:h-80">
-        <canvas id="barChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Proporsi Donat & Rincian -->
-    <div class="card p-5 rounded-xl flex flex-col justify-between">
-      <div>
-        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-2">
-          <i class="fa-chart-pie mr-2 text-emerald-400"></i>Proporsi Jenis Gempa
-        </h2>
-        <p class="text-xs text-slate-400 mb-4">Distribusi pada tanggal terpilih</p>
-        <div class="h-52 relative flex items-center justify-center">
-          <canvas id="doughnutChart"></canvas>
+    <div class="container">
+        <h2>Dashboard Aktivitas Kegempaan G. Dukono</h2>
+        
+        <!-- Bagian Filter Bulanan -->
+        <div class="filter-section">
+            <label for="filterBulan"><strong>Filter Bulan:</strong></label>
+            <select id="filterBulan" onchange="filterDataGrafik()">
+                <option value="all">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+            </select>
         </div>
-      </div>
-      <div id="detail-list" class="mt-4 pt-4 border-t border-slate-700/60 grid grid-cols-2 gap-2 text-xs">
-        <!-- Terisi otomatis oleh JS -->
-      </div>
+
+        <!-- Area Grafik -->
+        <div id="loadingText" class="loading">Memuat data dari Google Sheets...</div>
+        <div class="chart-container">
+            <canvas id="grafikGempa"></canvas>
+        </div>
     </div>
-  </div>
 
-  <!-- JavaScript Logic -->
-  <script>
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyxXYQDQxzVnqNmpZWvagK_7_MldwVYCukvztMigR6LrPkKvU3fNOkxD2Mp3qluRquv/exec';
+    <script>
+        // Ganti URL di bawah ini dengan URL Web App Google Apps Script kamu (/exec)
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypxi6a_rODEwCdIK6gpTjrOckPJFk8QLzMaRMMHWMfBAe6ZBN00d4K_jLxAgPbmJY4/exec";
 
-    let globalRowsData = [];
-    let barChart, doughnutChart;
+        let semuaDataGlobal = [];
+        let myChart = null;
 
-    function initCharts() {
-      const barCtx = document.getElementById('barChart').getContext('2d');
-      barChart = new Chart(barCtx, {
-        type: 'bar',
-        data: { labels: [], datasets: [] },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-            y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
-          },
-          plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 12 } } }
+        // Ambil data saat halaman pertama kali dibuka
+        fetch(WEB_APP_URL)
+            .then(response => response.json())
+            .then(data => {
+                semuaDataGlobal = data;
+                document.getElementById('loadingText').style.display = 'none';
+                tampilkanGrafik(semuaDataGlobal);
+            })
+            .catch(error => {
+                console.error("Gagal memuat data:", error);
+                document.getElementById('loadingText').innerText = "Gagal memuat data dari server.";
+            });
+
+        // Fungsi untuk menyaring data berdasarkan dropdown bulan
+        function filterDataGrafik() {
+            let bulanPilihan = document.getElementById('filterBulan').value;
+            
+            if (bulanPilihan === "all") {
+                tampilkanGrafik(semuaDataGlobal);
+                return;
+            }
+
+            // Menyaring data berdasarkan format tanggal "DD-MM-YYYY" di kolom PERIODE PENGAMATAN
+            let dataSaringan = semuaDataGlobal.filter(item => {
+                let periode = item["PERIODE PENGAMATAN"] || "";
+                // Mengambil substring posisi bulan (karakter ke-3 dan ke-4, misal "11" dari "03-11-2026")
+                let bulanData = periode.substring(3, 5); 
+                return bulanData === bulanPilihan;
+            });
+
+            tampilkanGrafik(dataSaringan);
         }
-      });
 
-      const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
-      doughnutChart = new Chart(doughnutCtx, {
-        type: 'doughnut',
-        data: { 
-          labels: ['Letusan', 'VB', 'VA', 'TL', 'TJ', 'LF', 'Tremor Menerus'], 
-          datasets: [{ 
-            data: [0, 0, 0, 0, 0, 0, 0], 
-            backgroundColor: ['#f97316', '#38bdf8', '#6366f1', '#a855f7', '#ec4899', '#c084fc', '#eab308'] 
-          }] 
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          cutout: '70%'
+        // Fungsi untuk merender atau memperbarui Chart.js
+        function tampilkanGrafik(dataAktif) {
+            let labels = dataAktif.map(item => item["PERIODE PENGAMATAN"]);
+            let dataLetusan = dataAktif.map(item => parseInt(item["Jumlah Letusan"]) || 0);
+            let dataGuguran = dataAktif.map(item => parseInt(item["Jumlah Guguran"]) || 0);
+            let dataLF = dataAktif.map(item => parseInt(item["Jumlah LF"]) || 0);
+
+            let ctx = document.getElementById('grafikGempa').getContext('2d');
+
+            // Hancurkan grafik lama jika sudah ada agar tidak menumpuk
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Jumlah Letusan',
+                            data: dataLetusan,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false
+                        },
+                        {
+                            label: 'Jumlah Guguran',
+                            data: dataGuguran,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false
+                        },
+                        {
+                            label: 'Jumlah LF',
+                            data: dataLF,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
         }
-      });
-    }
-
-    async function loadDataFromSheets() {
-      const syncElem = document.getElementById('sync-status');
-      try {
-        syncElem.innerHTML = `<i class="fa-solid fa-sync fa-spin mr-1"></i>Memperbarui data...`;
-        
-        const response = await fetch(GOOGLE_SCRIPT_URL);
-        globalRowsData = await response.json();
-        
-        if (globalRowsData && globalRowsData.length > 0) {
-          renderDashboard(globalRowsData);
-        }
-        
-        const now = new Date();
-        syncElem.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-1"></i>Updated: ${now.toLocaleTimeString('id-ID')}`;
-      } catch (err) {
-        console.error('Gagal mengambil data:', err);
-        syncElem.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-400 mr-1"></i>Gagal sync`;
-      }
-    }
-
-    function filterDataByDate() {
-      const selectedDate = document.getElementById('filter-date').value; // Format input HTML: YYYY-MM-DD
-      if (!selectedDate) {
-        renderDashboard(globalRowsData);
-        document.getElementById('chart-info-label').innerText = 'Semua Data';
-        return;
-      }
-
-      const [year, month, day] = selectedDate.split('-');
-      const targetDDMMYYYY = `${day}-${month}-${year}`; 
-      const targetShort = `${parseInt(day)}-${parseInt(month)}-${year}`; 
-      const targetSlash = `${day}/${month}/${year}`; 
-
-      const filtered = globalRowsData.filter(row => {
-        const periode = String(row['PERIODE PENGAMATAN'] || '').trim();
-        return periode.includes(targetDDMMYYYY) || 
-               periode.includes(targetShort) || 
-               periode.includes(targetSlash) ||
-               periode.includes(selectedDate);
-      });
-
-      if (filtered.length > 0) {
-        renderDashboard(filtered);
-        document.getElementById('chart-info-label').innerText = `Tanggal: ${targetDDMMYYYY}`;
-      } else {
-        renderDashboard([]);
-        document.getElementById('chart-info-label').innerText = `Tidak ada data (${targetDDMMYYYY})`;
-      }
-    }
-
-    function renderDashboard(rowsToProcess) {
-      if (!rowsToProcess || rowsToProcess.length === 0) {
-        document.getElementById('stat-total').innerText = '0';
-        document.getElementById('stat-letusan').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
-        document.getElementById('stat-amp-letusan').innerText = `Amp max: - mm`;
-        document.getElementById('stat-vb').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
-        document.getElementById('stat-lf').innerHTML = `0 <span class="text-xs font-normal text-slate-400">kejadian</span>`;
-        
-        doughnutChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0];
-        doughnutChart.update();
-        document.getElementById('detail-list').innerHTML = '';
-        
-        barChart.data.labels = [];
-        barChart.data.datasets = [];
-        barChart.update();
-        return;
-      }
-
-      const latest = rowsToProcess[rowsToProcess.length - 1];
-
-      const letusan = Number(latest['Jumlah Letusan'] || 0);
-      const ampLetusan = latest['Amp Letusan (mm)'] || '-';
-      const vb = Number(latest['Jumlah VB'] || 0);
-      const va = Number(latest['Jumlah VA'] || 0);
-      const tl = Number(latest['Jumlah TL'] || 0);
-      const tj = Number(latest['Jumlah TJ'] || 0);
-      const lf = Number(latest['Jumlah LF'] || 0);
-      const tremor = Number(latest['Tremor Amp (mm)'] || 0);
-
-      document.getElementById('stat-letusan').innerHTML = `${letusan} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
-      document.getElementById('stat-amp-letusan').innerText = `Amp max: ${ampLetusan} mm`;
-      document.getElementById('stat-vb').innerHTML = `${vb} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
-      document.getElementById('stat-lf').innerHTML = `${lf} <span class="text-xs font-normal text-slate-400">kejadian</span>`;
-
-      const totalGempa = letusan + vb + va + tl + tj + lf;
-      document.getElementById('stat-total').innerText = totalGempa.toLocaleString('id-ID');
-
-      doughnutChart.data.datasets[0].data = [letusan, vb, va, tl, tj, lf, tremor];
-      doughnutChart.update();
-
-      const detailContainer = document.getElementById('detail-list');
-      detailContainer.innerHTML = `
-        <div class="flex justify-between"><span class="text-slate-400">Letusan:</span> <span class="font-bold text-orange-400">${letusan}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">VB:</span> <span class="font-bold text-sky-400">${vb}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">VA:</span> <span class="font-bold text-indigo-400">${va}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">TL:</span> <span class="font-bold text-purple-400">${tl}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">TJ:</span> <span class="font-bold text-pink-400">${tj}</span></div>
-        <div class="flex justify-between"><span class="text-slate-400">LF:</span> <span class="font-bold text-purple-300">${lf}</span></div>
-        <div class="flex justify-between col-span-2 pt-1 border-t border-slate-700/40"><span class="text-slate-400">Tremor (Amp):</span> <span class="font-bold text-yellow-400">${tremor} mm</span></div>
-      `;
-
-      const labels = rowsToProcess.map((r, index) => {
-        const p = String(r['PERIODE PENGAMATAN'] || '');
-        return p ? p.split(' ')[0] : `Periode ${index + 1}`;
-      });
-
-      barChart.data.labels = labels;
-      barChart.data.datasets = [
-        { label: 'Letusan', data: rowsToProcess.map(r => Number(r['Jumlah Letusan'] || 0)), backgroundColor: '#f97316' },
-        { label: 'VB', data: rowsToProcess.map(r => Number(r['Jumlah VB'] || 0)), backgroundColor: '#38bdf8' },
-        { label: 'VA', data: rowsToProcess.map(r => Number(r['Jumlah VA'] || 0)), backgroundColor: '#6366f1' },
-        { label: 'TL', data: rowsToProcess.map(r => Number(r['Jumlah TL'] || 0)), backgroundColor: '#a855f7' },
-        { label: 'TJ', data: rowsToProcess.map(r => Number(r['Jumlah TJ'] || 0)), backgroundColor: '#ec4899' },
-        { label: 'LF', data: rowsToProcess.map(r => Number(r['Jumlah LF'] || 0)), backgroundColor: '#c084fc' }
-      ];
-      barChart.update();
-    }
-
-    window.onload = () => {
-      initCharts();
-      loadDataFromSheets();
-      setInterval(loadDataFromSheets, 60000); 
-    };
-  </script>
+    </script>
 </body>
 </html>
