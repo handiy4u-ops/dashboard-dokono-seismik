@@ -307,23 +307,26 @@
         let chartBar = null;
         let chartDoughnut = null;
 
-        // Mengambil data menggunakan JSONP agar aman dari blokir CORS browser lokal
-        function loadData() {
-            const callbackName = 'handleSheetData';
-            
-            window[callbackName] = function(data) {
+        // Mengambil data dari Web App Google Apps Script
+        async function loadData() {
+            try {
+                const response = await fetch(WEB_APP_URL);
+                if (!response.ok) {
+                    throw new Error("Respon server gagal: " + response.status);
+                }
+                
+                const data = await response.json();
                 semuaDataGlobal = data;
+
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('dashboardContent').style.display = 'block';
-                prosesFilterData();
-            };
 
-            const script = document.createElement('script');
-            script.src = `${WEB_APP_URL}?callback=${callbackName}`;
-            script.onerror = function() {
-                document.getElementById('loadingOverlay').innerText = "Gagal memuat data dari server. Periksa kembali koneksi internet atau URL Web App.";
-            };
-            document.body.appendChild(script);
+                prosesFilterData();
+            } catch (err) {
+                console.error("Gagal load data:", err);
+                document.getElementById('loadingOverlay').innerHTML = 
+                    "<span style='color: #e74c3c;'>❌ Gagal memuat data dari server. Pastikan menjalankan file melalui local server (Live Server VS Code).</span>";
+            }
         }
 
         loadData();
@@ -338,11 +341,11 @@
             } else {
                 dataFiltered = semuaDataGlobal.filter(item => {
                     let p = item["PERIODE PENGAMATAN"] || "";
-                    let b = p.substring(3, 5); // Ambil karakter bulan (MM) dari format DD-MM-YYYY
+                    let b = p.substring(3, 5); // Ambil format MM dari DD-MM-YYYY
                     return b === bulan;
                 });
                 
-                let namaBulan = document.getElementById('filterBulan').options[document.getElementById('filterBulan'].selectedIndex].text;
+                let namaBulan = document.getElementById('filterBulan').options[document.getElementById('filterBulan').selectedIndex].text;
                 document.getElementById('filterStatusText').innerText = "Bulan: " + namaBulan;
             }
 
